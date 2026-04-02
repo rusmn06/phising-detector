@@ -1,0 +1,63 @@
+email-phishing-scanner/
+│
+├── backend/                        # FastAPI Application
+│   ├── .venv/                      # Python Virtual Environment (JANGAN di-commit)
+│   ├── core/                       # Core Business Logic
+│   │   ├── __init__.py
+│   │   ├── analysis.py             # Analisis SPF/DKIM/DMARC + Scoring
+│   │   ├── dns_resolver.py         # DNS Resolver dengan timeout control
+│   │   ├── email_parser.py         # Parsing file .eml dengan mailparser
+│   │   ├── safe_browsing.py        # Integrasi Google Safe Browsing API
+│   │   └── url_extractor.py        # Ekstraksi URL dari konten email
+│   │
+│   ├── utils/                      # Utility Functions
+│   │   ├── __init__.py
+│   │   ├── file_validator.py       # Validasi Magic Bytes & Ukuran File
+│   │   └── sanitizer.py            # Sanitasi HTML dengan bleach
+│   │
+│   ├── tests/                      # Unit & Integration Tests
+│   │   ├── __init__.py
+│   │   ├── test_file_validator.py
+│   │   ├── test_email_parser.py
+│   │   └── test_safe_browsing.py
+│   │
+│   ├── config.py                   # Konfigurasi Environment (Pydantic Settings)
+│   ├── main.py                     # Entry Point FastAPI & API Routes
+│   ├── models.py                   # Pydantic Models untuk Request/Response
+│   └── requirements.txt            # Python Dependencies
+│
+├── frontend/                       # React Application (Vite + Tailwind)
+│   ├── node_modules/               # Node Dependencies (JANGAN di-commit)
+│   ├── public/                     # Static Assets
+│   ├── src/
+│   │   ├── components/             # Reusable UI Components
+│   │   │   ├── UploadArea.jsx      # Drag & Drop Upload Component
+│   │   │   ├── ScanResult.jsx      # Hasil Scan dengan Verdict
+│   │   │   └── LoadingSpinner.jsx  # Loading Indicator
+│   │   ├── services/               # API Services
+│   │   │   └── api.js              # Axios instance dengan interceptors
+│   │   ├── App.jsx                 # Main Component & Routing
+│   │   ├── main.jsx                # React Entry Point
+│   │   └── index.css               # Global Styles (Tailwind)
+│   ├── package.json                # Node Dependencies
+│   ├── vite.config.js              # Vite Configuration
+│   ├── tailwind.config.js          # Tailwind Configuration
+│   └── postcss.config.js           # PostCSS Configuration
+│
+├── infrastructure/                 # Infrastructure-as-Code
+│   ├── nginx/
+│   │   ├── nginx.conf              # Reverse Proxy & Security Headers
+│   │   └── certs/                  # SSL Certificates (JANGAN di-commit)
+│   │       ├── fullchain.pem
+│   │       └── privkey.pem
+│   ├── logs/                       # Log Files (auto-generated)
+│   │   └── nginx/
+│   ├── docker-compose.yml          # Orchestration Semua Services
+│   ├── Dockerfile.backend          # Docker Image untuk Backend
+│   └── Dockerfile.frontend         # Docker Image untuk Frontend
+│
+├── .env                            # Environment Variables (JANGAN di-commit!)
+├── .env.example                    # Template Environment Variables (BOLEH di-commit)
+├── .gitignore                      # Git Ignore Rules
+├── README.md                       # Project Overview (Root)
+└── backend/README.md               # Backend Documentation (YANG AKAN KITA BUAT)
