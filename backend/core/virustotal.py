@@ -1,15 +1,16 @@
 import httpx
 import base64
 import logging
+import asyncio
 from typing import List, Dict, Any
 from config import settings
+from .rate_limiter import quota_manager
 
 logger = logging.getLogger(__name__)
 
 class VirusTotalAdapter:
     """
-    Adapter untuk VirusTotal API v3.
-    Mendeteksi URL berbahaya menggunakan multi-engine scanning.
+    Adapter untuk VirusTotal API v3 dengan rate limit handling.
     """
     
     BASE_URL = "https://www.virustotal.com/api/v3"
@@ -22,24 +23,35 @@ class VirusTotalAdapter:
         }
     
     async def check_url(self, url: str) -> Dict[str, Any]:
-        """
-        Periksa satu URL menggunakan VirusTotal API.
+        """Periksa satu URL dengan rate limit check."""
         
-        Args:
-            url: URL untuk diperiksa
-            
-        Returns:
-            Dictionary dengan hasil analisis URL
-        """
+        # ⭐ CEK RATE LIMIT SEBELUM REQUEST ⭐
+        rate_limit_status = await quota_manager.check_rate_limit("virustotal")
+        
+        if not rate_limit_status["allowed"]:
+            logger.warning(f"VirusTotal rate limit exceeded: {rate_limit_status['limits_exceeded']}")
+            return {
+                "url": url,
+                "status": "rate_limited",
+                "error": f"API quota exceeded: {', '.join(rate_limit_status['limits_exceeded'])}",
+                "retry_after": rate_limit_status.get("retry_after"),
+                "remaining": rate_limit_status["remaining"]
+            }
+        
+        # Log warnings jika mendekati limit
+        for warning in rate_limit_status.get("warnings", []):
+            logger.warning(f"VirusTotal: {warning}")
+        
+        # Record request
+        await quota_manager.record_request("virustotal")
+        
+        # Proceed dengan API call
         if not url:
             return {"error": "No URL provided"}
         
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # VirusTotal memerlukan URL di-base64-kan (tanpa padding)
                 url_id = base64.urlsafe_b64encode(url.encode()).decode().strip('=')
-                
-                # Endpoint untuk mendapatkan laporan URL
                 endpoint = f"{self.BASE_URL}/urls/{url_id}"
                 
                 response = await client.get(endpoint, headers=self.headers)
@@ -49,13 +61,9 @@ class VirusTotalAdapter:
                     attributes = data.get("data", {}).get("attributes", {})
                     last_analysis_stats = attributes.get("last_analysis_stats", {})
                     
-                    # Hitung jumlah deteksi berbahaya
                     malicious = last_analysis_stats.get("malicious", 0)
                     suspicious = last_analysis_stats.get("suspicious", 0)
-                    harmless = last_analysis_stats.get("harmless", 0)
-                    timeout_count = last_analysis_stats.get("timeout", 0)
                     
-                    # Tentukan status berdasarkan deteksi
                     if malicious > 0:
                         status = "malicious"
                     elif suspicious > 0:
@@ -68,25 +76,27 @@ class VirusTotalAdapter:
                         "status": status,
                         "malicious": malicious,
                         "suspicious": suspicious,
-                        "harmless": harmless,
-                        "timeout": timeout_count,
+                        "harmless": last_analysis_stats.get("harmless", 0),
                         "total_engines": sum(last_analysis_stats.values()),
-                        "last_analysis_date": attributes.get("last_analysis_date"),
                         "reputation": attributes.get("reputation", 0),
-                        "categories": attributes.get("categories", {}),
                     }
                     
                 elif response.status_code == 404:
-                    # URL belum pernah dianalisis
                     return {
                         "url": url,
                         "status": "unknown",
-                        "message": "URL belum pernah dianalisis oleh VirusTotal",
-                        "malicious": 0,
-                        "suspicious": 0,
+                        "message": "URL belum pernah dianalisis",
+                    }
+                elif response.status_code == 429:
+                    # Rate limit dari server
+                    logger.error("VirusTotal returned 429 - Rate Limit Exceeded")
+                    return {
+                        "url": url,
+                        "status": "rate_limited",
+                        "error": "Server rate limit exceeded",
+                        "retry_after": 60
                     }
                 else:
-                    logger.error(f"VirusTotal API error: {response.status_code} - {response.text}")
                     return {
                         "url": url,
                         "status": "error",
@@ -94,30 +104,14 @@ class VirusTotalAdapter:
                     }
                     
         except httpx.TimeoutException:
-            logger.error(f"VirusTotal API timeout for URL: {url}")
-            return {
-                "url": url,
-                "status": "timeout",
-                "error": "API request timeout",
-            }
+            return {"url": url, "status": "timeout", "error": "API request timeout"}
         except Exception as e:
             logger.error(f"VirusTotal API error: {e}")
-            return {
-                "url": url,
-                "status": "error",
-                "error": str(e),
-            }
+            return {"url": url, "status": "error", "error": str(e)}
     
     async def check_urls(self, urls: List[str]) -> Dict[str, Any]:
         """
-        Periksa daftar URL menggunakan VirusTotal API.
-        Membatasi request sesuai rate limit free tier (4 request/menit).
-        
-        Args:
-            urls: List URL untuk diperiksa
-            
-        Returns:
-            Dictionary dengan ringkasan hasil pemeriksaan
+        Periksa daftar URL dengan rate limit protection.
         """
         if not urls:
             return {
@@ -128,39 +122,37 @@ class VirusTotalAdapter:
                 "provider": "virustotal"
             }
         
-        # Batasi jumlah URL untuk menghindari rate limit
-        # Free tier: 4 request/menit, 500 request/hari
-        MAX_URLS_PER_SCAN = 10
+        # ⭐ BATASI URL PER SCAN UNTUK HORMATI RATE LIMIT ⭐
+        MAX_URLS_PER_SCAN = 4  # Sesuai limit 4 request/minute
         urls_to_check = urls[:MAX_URLS_PER_SCAN]
         
         threats = []
-        total_malicious = 0
-        total_suspicious = 0
+        rate_limited_count = 0
         
-        # Check URLs secara sequential untuk menghormati rate limit
         for url in urls_to_check:
             result = await self.check_url(url)
             
+            if result.get("status") == "rate_limited":
+                rate_limited_count += 1
+                logger.warning(f"Rate limited for URL: {url}")
+                # Stop jika rate limited
+                break
+            
             if result.get("status") in ["malicious", "suspicious"]:
                 threats.append(result)
-                total_malicious += result.get("malicious", 0)
-                total_suspicious += result.get("suspicious", 0)
             
-            # Delay kecil untuk menghormati rate limit (15 detik antar request)
-            # Untuk production, pertimbangkan menggunakan queue + background task
-            import asyncio
-            await asyncio.sleep(0.5)  # Delay minimal untuk demo
+            # ⭐ DELAY ANTAR REQUEST UNTUK HORMATI RATE LIMIT ⭐
+            await asyncio.sleep(15)  # 15 detik antar request (4 request/menit)
         
         return {
             "total_urls": len(urls_to_check),
             "threatening_urls": len(threats),
-            "total_malicious_detections": total_malicious,
-            "total_suspicious_detections": total_suspicious,
             "threats": threats,
-            "status": "success",
+            "status": "success" if rate_limited_count == 0 else "partial_rate_limited",
             "provider": "virustotal",
+            "rate_limited_count": rate_limited_count,
             "note": f"Checked {len(urls_to_check)} of {len(urls)} URLs (rate limit protection)"
         }
 
-# Instance global dengan API key dari environment
+# Global instance
 virustotal_adapter = VirusTotalAdapter(api_key=settings.VIRUSTOTAL_API_KEY)

@@ -2,41 +2,50 @@ import httpx
 import logging
 from typing import List, Dict, Any
 from config import settings
+from .rate_limiter import quota_manager
 
 logger = logging.getLogger(__name__)
 
-# Google Safe Browsing API v4 Endpoint
 SAFE_BROWSING_API_URL = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
 
 async def check_urls_safe_browsing(urls: List[str]) -> Dict[str, Any]:
     """
-    Periksa daftar URL menggunakan Google Safe Browsing API.
-    
-    Args:
-        urls: List URL untuk diperiksa
-        
-    Returns:
-        Dictionary dengan hasil pemeriksaan:
-        - total_urls: Jumlah URL yang diperiksa
-        - threatening_urls: Jumlah URL berbahaya
-        - threats: Detail URL yang terdeteksi berbahaya
-        - status: success/error
+    Periksa URL menggunakan Google Safe Browsing dengan rate limit handling.
     """
     if not urls:
         return {
             "total_urls": 0,
             "threatening_urls": 0,
             "threats": [],
-            "status": "no_urls"
+            "status": "no_urls",
+            "provider": "google_safe_browsing"
         }
     
-    # Batasi maksimal URL yang diperiksa (untuk menghindari quota limit)
-    # Google Safe Browsing punya limit request per hari
-    MAX_URLS_TO_CHECK = 50
-    urls_to_check = urls[:MAX_URLS_TO_CHECK]
+    # ⭐ CEK RATE LIMIT ⭐
+    rate_limit_status = await quota_manager.check_rate_limit("google_safe_browsing")
     
-    # Siapkan payload untuk API Google Safe Browsing v4
-    # API ini menggunakan hash prefix untuk privasi
+    if not rate_limit_status["allowed"]:
+        logger.warning(f"Google Safe Browsing rate limit exceeded: {rate_limit_status['limits_exceeded']}")
+        return {
+            "total_urls": len(urls),
+            "threatening_urls": 0,
+            "threats": [],
+            "status": "rate_limited",
+            "error": f"API quota exceeded: {', '.join(rate_limit_status['limits_exceeded'])}",
+            "provider": "google_safe_browsing"
+        }
+    
+    # Log warnings
+    for warning in rate_limit_status.get("warnings", []):
+        logger.warning(f"Google Safe Browsing: {warning}")
+    
+    # Record request (1 request bisa check multiple URLs)
+    await quota_manager.record_request("google_safe_browsing")
+    
+    # Batasi URLs per request
+    MAX_URLS_PER_REQUEST = 500
+    urls_to_check = urls[:MAX_URLS_PER_REQUEST]
+    
     threat_entries = [{"url": url} for url in urls_to_check]
     
     payload = {
@@ -46,7 +55,6 @@ async def check_urls_safe_browsing(urls: List[str]) -> Dict[str, Any]:
         },
         "threatInfo": {
             "threatTypes": [
-                "THREAT_TYPE_UNSPECIFIED",
                 "MALWARE",
                 "SOCIAL_ENGINEERING",
                 "UNWANTED_SOFTWARE",
@@ -70,43 +78,51 @@ async def check_urls_safe_browsing(urls: List[str]) -> Dict[str, Any]:
                 data = response.json()
                 threats = data.get("matches", [])
                 
-                # Ekstrak informasi ancaman
                 threatening_urls = []
                 for threat in threats:
-                    threat_url = threat.get("threat", {}).get("url", "unknown")
-                    threat_type = threat.get("threatType", "UNKNOWN")
-                    platform = threat.get("platformType", "ANY")
-                    
                     threatening_urls.append({
-                        "url": threat_url,
-                        "threat_type": threat_type,
-                        "platform": platform
+                        "url": threat.get("threat", {}).get("url", "unknown"),
+                        "threat_type": threat.get("threatType", "UNKNOWN"),
+                        "platform": threat.get("platformType", "ANY")
                     })
                 
                 return {
                     "total_urls": len(urls_to_check),
                     "threatening_urls": len(threatening_urls),
                     "threats": threatening_urls,
-                    "status": "success"
+                    "status": "success",
+                    "provider": "google_safe_browsing",
+                    "remaining_quota": rate_limit_status["remaining"]
+                }
+            elif response.status_code == 429:
+                logger.error("Google Safe Browsing returned 429 - Rate Limit Exceeded")
+                return {
+                    "total_urls": len(urls_to_check),
+                    "threatening_urls": 0,
+                    "threats": [],
+                    "status": "rate_limited",
+                    "error": "Server rate limit exceeded",
+                    "provider": "google_safe_browsing"
                 }
             else:
-                logger.error(f"Safe Browsing API error: {response.status_code} - {response.text}")
+                logger.error(f"Safe Browsing API error: {response.status_code}")
                 return {
                     "total_urls": len(urls_to_check),
                     "threatening_urls": 0,
                     "threats": [],
                     "status": "api_error",
-                    "error": f"API returned status {response.status_code}"
+                    "error": f"API returned status {response.status_code}",
+                    "provider": "google_safe_browsing"
                 }
                 
     except httpx.TimeoutException:
-        logger.error("Safe Browsing API timeout")
         return {
             "total_urls": len(urls_to_check),
             "threatening_urls": 0,
             "threats": [],
             "status": "timeout",
-            "error": "API request timeout"
+            "error": "API request timeout",
+            "provider": "google_safe_browsing"
         }
     except Exception as e:
         logger.error(f"Safe Browsing API error: {e}")
@@ -115,5 +131,6 @@ async def check_urls_safe_browsing(urls: List[str]) -> Dict[str, Any]:
             "threatening_urls": 0,
             "threats": [],
             "status": "error",
-            "error": str(e)
+            "error": str(e),
+            "provider": "google_safe_browsing"
         }

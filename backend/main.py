@@ -8,7 +8,8 @@ from utils.sanitizer import sanitize_html
 from core.email_parser import parse_eml_file
 from core.analysis import analyze_authenticity
 from core.threat_detector import check_url_threats
-from models import URLScanRequest, URLScanResult  # ⭐ IMPORT BARU
+from models import URLScanRequest, URLScanResult
+from core.rate_limiter import quota_manager
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -184,6 +185,28 @@ async def scan_email(file: Annotated[UploadFile, File(description="File email .e
         "sanitized_body_preview": sanitize_html(parsed_email.get("html", ""))[:1000] if parsed_email.get("html") else None,
         "email_subject": parsed_email.get("subject", ""),
         "from_domain": parsed_email.get("from_domain", ""),
+    }
+
+@app.get(f"{settings.API_V1_STR}/quota-status")
+async def get_quota_status():
+    """
+    Endpoint untuk monitoring quota API.
+    Berguna untuk admin memantau sisa quota sebelum habis.
+    """
+    vt_status = await quota_manager.check_rate_limit("virustotal")
+    gs_status = await quota_manager.check_rate_limit("google_safe_browsing")
+    
+    return {
+        "virustotal": {
+            "remaining": vt_status["remaining"],
+            "warnings": vt_status["warnings"],
+            "allowed": vt_status["allowed"]
+        },
+        "google_safe_browsing": {
+            "remaining": gs_status["remaining"],
+            "warnings": gs_status["warnings"],
+            "allowed": gs_status["allowed"]
+        }
     }
 
 if __name__ == "__main__":
