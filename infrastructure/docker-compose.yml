@@ -1,0 +1,54 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.backend
+    container_name: phishing-scanner-backend
+    restart: unless-stopped
+    volumes:
+      - backend_data:/app/data
+      - ./backend/.env:/app/.env:ro
+    environment:
+      - APP_ENV=production
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=8000
+    networks:
+      - phishing-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.frontend
+    container_name: phishing-scanner-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - phishing-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  phishing-network:
+    driver: bridge
+
+volumes:
+  backend_data:
+    driver: local
