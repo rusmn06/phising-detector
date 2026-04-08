@@ -1,41 +1,47 @@
-# ===========================================
-# Docker Compose untuk Production Deployment
-# Azure Ubuntu 24 Compatible
-# ===========================================
-
 version: '3.8'
 
 services:
+  # ===========================================
   # Backend: FastAPI Application
+  # ===========================================
   backend:
     build:
       context: ..
       dockerfile: infrastructure/Dockerfile.backend
     container_name: phishing-backend
     restart: unless-stopped
-    networks:
-      - app-network
     environment:
       - APP_ENV=production
       - API_V1_STR=/api/v1
-      # Secrets should be loaded from .env.production file
-    env_file:
-      - .env.production
-    volumes:
-      - backend-data:/app/data  # Untuk quota cache JSON
+      - PROJECT_NAME=Email Phishing Scanner
+      # API Keys - inject from Azure Key Vault or .env
+      - GOOGLE_SAFE_BROWSING_API_KEY=${GOOGLE_SAFE_BROWSING_API_KEY}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - URL_THREAT_PROVIDER=${URL_THREAT_PROVIDER:-virustotal}
+      - RATE_LIMIT=10/minute
+      - DNS_TIMEOUT=5.0
+    networks:
+      - phishing-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    # Resource limits for Azure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
+  # ===========================================
   # Frontend: React Application (served by Nginx)
+  # ===========================================
   frontend:
     build:
       context: ..
@@ -43,55 +49,50 @@ services:
     container_name: phishing-frontend
     restart: unless-stopped
     networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_healthy
+      - phishing-net
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Reverse Proxy: Nginx (entry point untuk semua traffic)
+  # ===========================================
+  # Reverse Proxy: Nginx (SSL Termination + Security)
+  # ===========================================
   reverse-proxy:
-    image: nginx:alpine-slim
+    image: nginx:alpine
     container_name: phishing-proxy
     restart: unless-stopped
     ports:
-      - "80:80"    # HTTP (redirect to HTTPS)
-      - "443:443"  # HTTPS (production)
+      - "80:80"   # HTTP redirect
+      - "443:443" # HTTPS
     volumes:
+      # Nginx configuration
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl-params.conf:/etc/nginx/snippets/ssl-params.conf:ro
-      - ./certs:/etc/nginx/certs:ro          # SSL certificates
-      - ./logs/nginx:/var/log/nginx          # Log files
+      - ./nginx/react-nginx.conf:/etc/nginx/conf.d/react.conf:ro
+      # SSL Certificates (mount from Azure Key Vault or local)
+      - ./nginx/certs:/etc/nginx/certs:ro
+      # Logs
+      - ./logs/nginx:/var/log/nginx
     networks:
-      - app-network
+      - phishing-net
     depends_on:
-      - frontend
-      - backend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
       timeout: 10s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
 
 networks:
-  app-network:
+  phishing-net:
     driver: bridge
-    internal: false  # Allow external access via reverse-proxy only
+    name: phishing-scanner-network
 
+# Optional: Volumes for persistent data
 volumes:
-  backend-data:
+  quota-cache:
     driver: local
