@@ -104,17 +104,17 @@ function ScanURL() {
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="https://example.com/login"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-colors"
                     disabled={loading}
                   />
                 </div>
                 <button
                   onClick={handleScan}
                   disabled={loading}
-                  className={`px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center ${
+                  className={`px-5 py-2.5 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 disabled:bg-sky-300 transition-colors flex items-center ${
                   loading 
-                    ? 'bg-blue-400 cursor-not-allowed' 
-                    : 'hover:bg-blue-700 hover:shadow-md'
+                    ? 'bg-sky-400 cursor-not-allowed' 
+                    : 'hover:bg-sky-700 hover:shadow-md'
                 }`}
                 >
                   {loading ? (
@@ -141,12 +141,12 @@ function ScanURL() {
             )}
 
             {/* Tips */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+            <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
+              <h4 className="font-semibold text-sky-900 mb-2 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Tips:
               </h4>
-              <ul className="text-sm text-blue-800 space-y-1">
+              <ul className="text-sm text-sky-800 space-y-1">
                 <li>• Paste URL dari SMS, email, atau media sosial untuk dicek</li>
                 <li>• Analisis menggunakan VirusTotal (70+ antivirus engines)</li>
                 <li>• Hasil berdasarkan database global threat intelligence</li>
@@ -165,7 +165,7 @@ function ScanURL() {
               <VerdictBadge verdict={result.verdict} />
               <button
                 onClick={handleReset}
-                className="text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                className="text-sky-600 hover:text-sky-700 font-medium flex items-center"
               >
                 <Search className="h-4 w-4 mr-1" />
                 Cek URL Lain
@@ -214,7 +214,7 @@ function ScanURL() {
                     href={result.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all flex items-center"
+                    className="text-sky-600 hover:underline break-all flex items-center"
                   >
                     {result.url}
                     <ExternalLink className="h-3 w-3 ml-1" />
@@ -355,7 +355,7 @@ function ScanURL() {
             </a>
             <button
               onClick={handleReset}
-              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors"
             >
               Cek URL Lain
             </button>

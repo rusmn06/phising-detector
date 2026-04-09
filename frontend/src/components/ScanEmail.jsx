@@ -91,15 +91,15 @@ function ScanEmail() {
           <div
             {...getRootProps()}
             className={`text-center cursor-pointer transition-colors ${
-              isDragActive ? 'bg-blue-50 border-blue-500' : 'hover:bg-gray-50'
+              isDragActive ? 'bg-sky-50 border-sky-500' : 'hover:bg-gray-50'
             }`}
           >
             <input {...getInputProps()} />
             
             {isDragActive ? (
               <div className="py-12">
-                <Upload className="h-16 w-16 mx-auto text-blue-600 mb-4" />
-                <p className="text-lg font-semibold text-blue-600">
+                <Upload className="h-16 w-16 mx-auto text-sky-600 mb-4" />
+                <p className="text-lg font-semibold text-sky-600">
                   Lepaskan file di sini...
                 </p>
               </div>
@@ -112,7 +112,7 @@ function ScanEmail() {
                 <p className="text-sm text-gray-500 mb-4">
                   ✓ Format: .eml &nbsp;|&nbsp; ✓ Maksimal: 10 MB
                 </p>
-                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors">
                   Pilih File
                 </button>
               </div>
@@ -121,10 +121,10 @@ function ScanEmail() {
 
           {/* Selected File */}
           {file && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <FileText className="h-6 w-6 text-blue-600 mr-3" />
+                  <FileText className="h-6 w-6 text-sky-600 mr-3" />
                   <div>
                     <p className="font-semibold text-gray-900">{file.name}</p>
                     <p className="text-sm text-gray-600">
@@ -156,7 +156,7 @@ function ScanEmail() {
               <button
                 onClick={handleScan}
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                className="flex-1 px-6 py-3 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 disabled:bg-sky-300 transition-colors"
               >
                 {loading ? 'Scanning...' : 'Analyze Email'}
               </button>
@@ -179,12 +179,12 @@ function ScanEmail() {
       )}
 
       {/* Tips Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+      <div className="bg-gray-100 border border-gray-200 rounded-xl p-6">
+        <h3 className="font-semibold text-egray-950 mb-3 flex items-center">
           <AlertCircle className="h-5 w-5 mr-2" />
           Tips:
         </h3>
-        <ul className="text-sm text-blue-800 space-y-2">
+        <ul className="text-sm text-gray-950 space-y-2">
           <li>• File .eml bisa diekspor dari Outlook, Gmail, atau Thunderbird</li>
           <li>• Pastikan email lengkap dengan header untuk hasil analisis akurat</li>
           <li>• Ukuran maksimal file adalah 10 MB</li>
@@ -200,7 +200,7 @@ function ScanEmail() {
               <VerdictBadge verdict={result.verdict} />
               <button
                 onClick={handleReset}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sky-600 hover:text-sky-700 font-medium"
               >
                 Scan Email Lain
               </button>
@@ -324,7 +324,7 @@ function ScanEmail() {
               {result.sanitized_body_preview.length > 200 && (
                 <button
                   onClick={() => setShowPreview(!showPreview)}
-                  className="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center transition-colors"
+                  className="mt-3 text-sky-600 hover:text-sky-700 text-sm font-medium flex items-center transition-colors"
                 >
                   {showPreview ? (
                     <>

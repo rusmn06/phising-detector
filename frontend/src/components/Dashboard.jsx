@@ -73,8 +73,8 @@ function Dashboard() {
       value: stats?.total_scans || 0,
       icon: Mail,
       color: 'blue',
-      bg: 'bg-blue-100',
-      text: 'text-blue-600',
+      bg: 'bg-sky-100',
+      text: 'text-sky-600',
     },
     {
       title: 'Safe Email',
@@ -119,7 +119,7 @@ function Dashboard() {
           return (
             <div
               key={card.title}
-              className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+              className="bg-gray-50 rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -151,7 +151,7 @@ function Dashboard() {
       </div>
 
       {/* Recent Activity Section */}
-      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+      <div className="bg-gray-50 rounded-xl shadow-md p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">
             <TrendingUp className="inline h-5 w-5 mr-2" />
@@ -201,7 +201,7 @@ function Dashboard() {
                     <td className="py-3 text-right">
                       <a
                         href="/history"
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center justify-end"
+                        className="text-sky-600 hover:text-sky-800 text-sm font-medium flex items-center justify-end"
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         View
@@ -217,26 +217,26 @@ function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-md p-6 text-white">
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-md p-6 text-white">
           <h3 className="text-lg font-bold mb-2">Scan Email</h3>
-          <p className="text-blue-100 mb-4">
+          <p className="text-gray-100 mb-4">
             Upload file .eml untuk analisis phishing lengkap
           </p>
           <a
             href="/scan-email"
-            className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
           >
             Mulai Scan →
           </a>
         </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-md p-6 text-white">
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-md p-6 text-white">
           <h3 className="text-lg font-bold mb-2">Scan URL</h3>
-          <p className="text-purple-100 mb-4">
+          <p className="text-gray-100 mb-4">
             Cek link mencurigakan tanpa upload email
           </p>
           <a
             href="/scan-url"
-            className="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
           >
             Cek URL →
           </a>

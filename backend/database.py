@@ -6,7 +6,7 @@ Menggunakan SQLite untuk simplicity (production bisa migrate ke PostgreSQL).
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import os
 
@@ -56,6 +56,15 @@ class ScanHistory(Base):
     
     def to_dict(self):
         """Convert model to dictionary for API response."""
+        scanned_at = None
+        if self.scanned_at:
+            # treat as UTC and serialize with 'Z' so JS parses it as UTC
+            scanned_at = (
+                self.scanned_at
+                .replace(tzinfo=timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z")
+            )
         return {
             "id": self.id,
             "filename": self.filename,
@@ -66,7 +75,7 @@ class ScanHistory(Base):
             "subject": self.subject,
             "url_count": self.url_count,
             "threatening_url_count": self.threatening_url_count,
-            "scanned_at": self.scanned_at.isoformat() if self.scanned_at else None,
+            "scanned_at": scanned_at,
             "ip_address": self.ip_address,
         }
 
