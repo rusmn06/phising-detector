@@ -1,11 +1,10 @@
 """
-Database configuration dan models untuk menyimpan history scan.
-Menggunakan SQLite untuk simplicity (production bisa migrate ke PostgreSQL).
+Database configuration and models for storing scan history.
+Uses SQLite for simplicity (production can migrate to PostgreSQL).
 """
-
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 import logging
 import os
@@ -13,12 +12,10 @@ import os
 logger = logging.getLogger(__name__)
 
 # SQLite database path
-# Buat folder data jika belum ada
 os.makedirs("data", exist_ok=True)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./data/scan_history.db"
 
 # Create database engine
-# check_same_thread=False needed for SQLite with FastAPI
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 
     connect_args={"check_same_thread": False}
@@ -36,8 +33,8 @@ Base = declarative_base()
 
 class ScanHistory(Base):
     """
-    Model untuk menyimpan history scan email.
-    Setiap scan akan disimpan untuk referensi dan audit.
+    Model to store scan history.
+    Each scan is saved for reference and audit.
     """
     __tablename__ = "scan_history"
     
@@ -70,9 +67,10 @@ class ScanHistory(Base):
             "ip_address": self.ip_address,
         }
 
+
 class CleanupLog(Base):
     """
-    Model untuk logging cleanup job (auto-delete record >30 hari).
+    Model for logging cleanup jobs (auto-delete records >30 days).
     """
     __tablename__ = "cleanup_log"
     
@@ -88,8 +86,8 @@ class CleanupLog(Base):
 
 def get_db():
     """
-    Dependency untuk mendapatkan database session.
-    Gunakan di endpoint dengan Depends(get_db).
+    Dependency to get database session.
+    Use in endpoints with Depends(get_db).
     """
     db = SessionLocal()
     try:
@@ -97,43 +95,35 @@ def get_db():
     finally:
         db.close()
 
+
 def init_db():
-    """
-    Initialize database - create tables if not exist.
-    Panggil ini saat aplikasi start.
-    """
+    """Initialize database - create tables if not exist."""
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialized successfully")
 
-def cleanup_old_records(db: SessionLocal, retention_days: int = 30):
+
+def cleanup_old_records(db, retention_days: int = 30):
     """
     Delete scan history older than retention_days.
-    Dipanggil secara otomatis setiap hari atau manual via endpoint.
     
     Args:
         db: Database session
-        retention_days: Berapa hari record disimpan (default: 30)
+        retention_days: Days to retain records (default: 30)
     
     Returns:
-        Dict dengan status dan jumlah record yang dihapus
+        Dict with status and number of deleted records
     """
     try:
-        # Hitung cutoff date
         cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
         
-        # Query record yang akan dihapus
         old_records = db.query(ScanHistory).filter(
             ScanHistory.scanned_at < cutoff_date
         )
         
-        # Hitung jumlah sebelum delete
         deleted_count = old_records.count()
-        
-        # Delete records
         old_records.delete(synchronize_session=False)
         db.commit()
         
-        # Log cleanup activity
         log = CleanupLog(
             records_deleted=deleted_count,
             status="success"
@@ -149,7 +139,6 @@ def cleanup_old_records(db: SessionLocal, retention_days: int = 30):
         db.rollback()
         logger.error(f"Cleanup failed: {e}")
         
-        # Log error
         log = CleanupLog(
             records_deleted=0,
             status="failed",

@@ -1,9 +1,11 @@
+"""
+HTML sanitization utility to prevent XSS attacks.
+Uses bleach library for safe HTML cleaning.
+"""
 import bleach
 from typing import Optional
 
-# ⭐ JANGAN ADA IMPORT DARI utils.sanitizer DI SINI! ⭐
-
-# Daftar tag HTML yang DIIZINKAN (whitelist approach)
+# Allowed HTML tags (whitelist approach)
 ALLOWED_TAGS = [
     'p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li',
     'table', 'tr', 'th', 'td', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -20,18 +22,26 @@ ALLOWED_ATTRIBUTES = {
 
 ALLOWED_PROTOCOLS = ['http', 'https', 'mailto']
 
+
 def sanitize_html(html_content: Optional[str], max_length: int = 5000) -> Optional[str]:
     """
-    Sanitasi konten HTML dari email untuk mencegah XSS.
+    Sanitize HTML content from emails to prevent XSS.
+    
+    Args:
+        html_content: Raw HTML content
+        max_length: Maximum length to prevent DoS
+        
+    Returns:
+        Sanitized HTML string or None
     """
     if not html_content:
         return None
     
-    # Batasi panjang konten untuk mencegah DoS
+    # Limit content length to prevent DoS
     if len(html_content) > max_length:
-        html_content = html_content[:max_length] + "... [konten dipotong]"
+        html_content = html_content[:max_length] + "... [content truncated]"
     
-    # Bersihkan HTML menggunakan bleach
+    # Clean HTML using bleach
     clean_html = bleach.clean(
         text=html_content,
         tags=ALLOWED_TAGS,
@@ -43,14 +53,21 @@ def sanitize_html(html_content: Optional[str], max_length: int = 5000) -> Option
     
     return clean_html
 
+
 def sanitize_url(url: str) -> Optional[str]:
     """
-    Validasi dan sanitasi URL untuk mencegah javascript: dan scheme berbahaya.
+    Validate and sanitize URL to prevent javascript: and dangerous schemes.
+    
+    Args:
+        url: URL string to validate
+        
+    Returns:
+        Sanitized URL or None if dangerous
     """
     if not url:
         return None
     
-    # Cek scheme berbahaya
+    # Check for dangerous schemes
     dangerous_schemes = ['javascript:', 'data:', 'vbscript:', 'file:']
     url_lower = url.lower().strip()
     

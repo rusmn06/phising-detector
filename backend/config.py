@@ -1,19 +1,23 @@
+"""
+Configuration module for the application.
+Uses Pydantic Settings for automatic validation.
+"""
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
-# Tentukan path ke file .env (di root proyek, satu level di atas backend/)
+# Path to .env file (project root, one level above backend/)
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
 
+
 class Settings(BaseSettings):
     """
-    Kelas untuk mengelola konfigurasi aplikasi.
-    Menggunakan Pydantic Settings untuk validasi otomatis.
-    Sesuai blueprint 'Email Phishing Scanner'
+    Application configuration management class.
+    Based on 'Email Phishing Scanner' blueprint.
     """
     
     # ===========================================
-    # Application Settings (Dari Blueprint)
+    # Application Settings
     # ===========================================
     APP_ENV: str = "development"
     API_V1_STR: str = "/api/v1"
@@ -22,28 +26,23 @@ class Settings(BaseSettings):
     # ===========================================
     # Security & External APIs
     # ===========================================
-    # Google Safe Browsing API Key (untuk deteksi email)
     GOOGLE_SAFE_BROWSING_API_KEY: str = ""
-    
-    # VirusTotal API Key (untuk deteksi URL phishing)
     VIRUSTOTAL_API_KEY: str = ""
-    
-    # Secret key untuk internal use (JWT, session, dll)
     SECRET_KEY: str = "change-this-to-random-string-in-production"
     
     # ===========================================
     # URL Threat Detection Provider
+    # Options: "google_safe_browsing", "virustotal", "both"
     # ===========================================
-    # Pilihan: "google_safe_browsing", "virustotal", "both"
     URL_THREAT_PROVIDER: str = "virustotal"
     
     # ===========================================
-    # Rate Limiting (Dari Blueprint)
+    # Rate Limiting
     # ===========================================
     RATE_LIMIT: str = "5/minute"
     
     # ===========================================
-    # DNS Settings (Dari Blueprint)
+    # DNS Settings
     # ===========================================
     DNS_TIMEOUT: float = 5.0
     DNS_NAMESERVERS: str = "8.8.8.8,8.8.4.4"
@@ -52,7 +51,8 @@ class Settings(BaseSettings):
         env_file = ENV_FILE
         env_file_encoding = "utf-8"
         case_sensitive = True
-        extra = "ignore"  # Abaikan variabel .env yang tidak didefinisikan
+        extra = "ignore"  # Ignore undefined .env variables
 
-# Inisialisasi instance settings global
+
+# Global settings instance
 settings = Settings()
