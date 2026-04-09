@@ -195,7 +195,7 @@ function ScanEmail() {
       {result && (
         <div className="space-y-6">
           {/* Verdict Banner */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-gray-500">
             <div className="flex items-center justify-between mb-4">
               <VerdictBadge verdict={result.verdict} />
               <button
