@@ -10,10 +10,10 @@
   },
   "google_safe_browsing": {
     "requests": [
-      1775543963.8667238
+      1775701193.4516237
     ],
-    "daily_count": 26,
-    "last_reset_day": "2026-04-07",
-    "monthly_count": 26
+    "daily_count": 2,
+    "last_reset_day": "2026-04-09",
+    "monthly_count": 28
   }
 }
