@@ -558,4 +558,4 @@ Gunakan checklist ini untuk memastikan semua langkah sudah selesai:
 
 ---
 
-*Dibuat untuk: Email Phishing Scanner v1.0.0 | Azure Ubuntu 24.04 LTS*
+*Dibuat untuk: Email Phishing Scanner v2.0.0 | Testing: Azure Ubuntu 24.04 LTS*

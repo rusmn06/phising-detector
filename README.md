@@ -1,98 +1,124 @@
-# Struktur Folder Lengkap
-Struktur ini mencerminkan keadaan proyek saat ini setelah implementasi **Validasi, Parsing, Analisis SPF/DMARC, Sanitasi HTML, dan Integrasi VirusTotal**.
+# 🛡️ Email Phishing Scanner
 
-phising-detector/
-│
-├── backend/                        # FastAPI Application
-│   ├── .venv/                      # Python Virtual Environment (IGNORED in Git)
-│   ├── core/                       # Core Business Logic
-│   │   ├── __init__.py
-│   │   ├── analysis.py             # Logika scoring risiko & agregasi hasil
-│   │   ├── dns_resolver.py         # DNS Resolver dengan timeout control
-│   │   ├── email_parser.py         # Parsing file .eml (mailparser) + sanitasi awal
-│   │   ├── safe_browsing.py        # Adapter Google Safe Browsing (Legacy/Optional)
-│   │   ├── virustotal.py           # Adapter VirusTotal API v3
-│   │   ├── threat_detector.py      # Factory Pattern untuk switch provider
-│   │   └── url_extractor.py        # Ekstraksi URL dari konten email
-│   │
-│   ├── utils/                      # Utility Functions
-│   │   ├── __init__.py
-│   │   ├── file_validator.py       # Validasi Magic Bytes & Ukuran File
-│   │   └── sanitizer.py            # Sanitasi HTML output (bleach)
-│   │
-│   ├── tests/                      # Unit & Integration Tests
-│   │   ├── __init__.py
-│   │   ├── test_file_validator.py
-│   │   ├── test_email_parser.py
-│   │   └── test_threat_detector.py
-│   │
-│   ├── config.py                   # Konfigurasi Environment (Pydantic Settings)
-│   ├── main.py                     # Entry Point FastAPI & API Routes
-│   ├── models.py                   # Pydantic Models untuk Request/Response
-│   ├── requirements.txt            # Python Dependencies
-│   └── README.md                   # Dokumentasi Khusus Backend (Lihat di bawah)
-│
-├── frontend/                       # React Application (Vite + Tailwind)
-│   ├── node_modules/               # Node Dependencies (IGNORED in Git)
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── UploadArea.jsx
-│   │   │   ├── ScanResult.jsx
-│   │   │   └── LoadingSpinner.jsx
-│   │   ├── services/
-│   │   │   └── api.js              # Axios instance
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── package.json
-│   ├── vite.config.js
-│   └── tailwind.config.js
-│
-├── infrastructure/                 # Infrastructure-as-Code
-│   ├── nginx/
-│   │   ├── nginx.conf              # Reverse Proxy & Security Headers
-│   │   └── certs/                  # SSL Certificates (IGNORED in Git)
-│   ├── logs/                       # Log Files (Auto-generated)
-│   ├── docker-compose.yml          # Orkestrasi Services
-│   ├── Dockerfile.backend
-│   └── Dockerfile.frontend
-│
-├── .env                            # Environment Variables (IGNORED in Git!)
-├── .env.example                    # Template Environment Variables
-├── .gitignore                      # Git Ignore Rules
-└── README.md                       # Project Overview (Root)
-
-# Email Phishing Scanner - Backend Documentation
-
-Backend aplikasi ini dibangun menggunakan **FastAPI** (Python) dengan arsitektur modular yang mengutamakan keamanan, skalabilitas, dan kemudahan maintenance.
+Aplikasi internal berbasis web untuk mendeteksi email phishing secara otomatis. Upload file `.eml`, sistem akan menganalisis keaslian domain pengirim (SPF/DMARC), memeriksa URL berbahaya, dan memberikan **skor risiko 0–100** beserta verdict.
 
 ---
 
-## Daftar Isi
+## Fitur Utama
 
-1. [Prasyarat](#prasyarat)
-2. [Setup Lingkungan Pengembangan](#setup-lingkungan-pengembangan)
-3. [Struktur Modul](#struktur-modul)
-4. [Konfigurasi Environment Variables](#konfigurasi-environment-variables)
-5. [Panduan Mengganti Provider Deteksi URL](#panduan-mengganti-provider-deteksi-url)
-6. [Menjalankan Server](#menjalankan-server)
-7. [Testing API](#testing-api)
-8. [Troubleshooting](#troubleshooting)
-
----
-
-## Prasyarat
-
-- Python 3.12 atau lebih baru
-- pip (Python Package Manager)
-- Virtual Environment (venv)
+- **Scan Email (.eml)** — Upload file email, analisis lengkap SPF, DMARC, dan URL
+- **Scan URL** — Cek link mencurigakan langsung tanpa perlu upload email
+- **Skor Risiko** — Sistem scoring 0–100 dengan verdict *safe / suspicious / phishing*
+- **Dashboard** — Overview statistik scan dan aktivitas terbaru
+- **History** — Riwayat semua scan dengan filter, search, dan pagination
+- **Rate Limit Protection** — Manajemen quota API VirusTotal & Google Safe Browsing otomatis
+- **Sanitasi HTML** — Konten email disanitasi dengan `bleach` sebelum ditampilkan (anti-XSS)
+- **Validasi File** — Cek magic bytes (bukan hanya ekstensi) + batas 10MB
 
 ---
 
-## Setup Lingkungan Pengembangan
+## Tech Stack
 
-### 1. Buat Virtual Environment
+| Layer | Teknologi |
+|---|---|
+| **Backend** | FastAPI (Python 3.12), Uvicorn |
+| **Frontend** | React 19, Vite 8, Tailwind CSS 4 |
+| **Database** | SQLite (via SQLAlchemy) |
+| **Auth Email** | checkdmarc (SPF/DMARC), dnspython |
+| **URL Scanner** | VirusTotal API v3, Google Safe Browsing API v4 |
+| **HTTP Client** | httpx (async), Axios |
+| **HTML Security** | bleach (sanitasi), python-magic (validasi file) |
+| **Routing** | React Router v7 |
+| **Icons** | Lucide React |
+
+---
+
+## Struktur Proyek
+
+```
+email-phishing-scanner/
+│
+├── backend/
+│   ├── core/
+│   │   ├── analysis.py          # Scoring SPF/DMARC + logika risiko
+│   │   ├── dns_resolver.py      # DNS resolver dengan timeout
+│   │   ├── email_parser.py      # Parsing .eml (mailparser)
+│   │   ├── rate_limiter.py      # Manajemen quota API
+│   │   ├── safe_browsing.py     # Adapter Google Safe Browsing
+│   │   ├── threat_detector.py   # Factory pattern untuk provider URL
+│   │   ├── url_extractor.py     # Ekstraksi URL dari konten email
+│   │   └── virustotal.py        # Adapter VirusTotal API v3
+│   │
+│   ├── routes/
+│   │   └── history.py           # Endpoint history, stats, cleanup
+│   │
+│   ├── utils/
+│   │   ├── file_validator.py    # Validasi magic bytes + ukuran file
+│   │   └── sanitizer.py        # Sanitasi HTML & URL
+│   │
+│   ├── data/                    # SQLite database & quota cache
+│   ├── config.py                # Konfigurasi via Pydantic Settings
+│   ├── database.py              # Model SQLAlchemy & helper DB
+│   ├── main.py                  # Entry point FastAPI
+│   ├── models.py                # Schema Pydantic request/response
+│   └── requirements.txt
+│
+├── frontend/
+│   └── src/
+│       ├── components/
+│       │   ├── Dashboard.jsx
+│       │   ├── History.jsx
+│       │   ├── Layout.jsx
+│       │   ├── LoadingSpinner.jsx
+│       │   ├── ScanEmail.jsx
+│       │   ├── ScanURL.jsx
+│       │   └── VerdictBadge.jsx
+│       └── services/
+│           └── api.js           # Axios instance + interceptors
+│
+├── .env.example                 # Template environment variables
+├── .gitignore
+├── README.md                    # File ini
+├── DEPLOY_AZURE.md              # Panduan deploy ke Azure Ubuntu 24
+└── start-dev.bat                # Shortcut jalankan dev (Windows)
+```
+
+---
+
+## Setup Lokal (Development)
+
+### Prasyarat
+
+- Python **3.12+**
+- Node.js **20+**
+- API key **VirusTotal** — [virustotal.com/gui/my-apikey](https://www.virustotal.com/gui/my-apikey)
+- API key **Google Safe Browsing** — [console.cloud.google.com](https://console.cloud.google.com/apis/credentials)
+
+---
+
+### 1 — Clone & Konfigurasi Environment
+
+```bash
+git clone https://github.com/<username>/email-phishing-scanner.git
+cd email-phishing-scanner
+
+# Salin template environment
+cp .env.example .env
+```
+
+Edit `.env` dan isi minimal dua API key berikut:
+
+```env
+GOOGLE_SAFE_BROWSING_API_KEY=your_key_here
+VIRUSTOTAL_API_KEY=your_key_here
+SECRET_KEY=random_string_32_chars
+URL_THREAT_PROVIDER=virustotal   # atau: google_safe_browsing / both
+```
+
+---
+
+### 2 — Setup Backend
+
 ```bash
 cd backend
 
@@ -289,4 +315,4 @@ Aplikasi otomatis mengelola quota dan menghentikan request jika limit tercapai. 
 
 ---
 
-*Email Phishing Scanner v1.0.0 — Internal Security Tool*
+*Email Phishing Scanner v2.0.0 — Internal Security Tool*
