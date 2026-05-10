@@ -1,0 +1,3 @@
+## 2026-05-09 - Improve Dashboard Navigation UX and Accessibility
+**Learning:** Found that primary navigation elements on the Dashboard were using standard anchor `<a>` tags instead of React Router `<Link>` components, causing full page reloads and degrading the SPA experience. Additionally, hover states on primary action buttons had poor color contrast (`hover:bg-blue-50` with `text-gray-100`), making text unreadable, and lacked keyboard focus indicators.
+**Action:** Always verify that internal navigation uses SPA routing components (`<Link>`). Ensure all interactive elements have visible focus states (`focus-visible:ring-2`) and maintain WCAG contrast ratios during hover/focus states.

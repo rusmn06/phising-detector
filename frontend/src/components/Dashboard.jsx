@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getDashboardStats, getHistory } from "../services/api";
 import LoadingSpinner from "./LoadingSpinner";
 import {
@@ -15,10 +16,6 @@ function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const loadStats = async () => {
     try {
@@ -38,6 +35,10 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const formatRelativeTime = (dateString) => {
     if (!dateString) return "-";
@@ -218,13 +219,13 @@ function Dashboard() {
                       {formatRelativeTime(record.scanned_at)}
                     </td>
                     <td className="py-3 text-right">
-                      <a
-                        href="/history"
-                        className="text-sky-600 hover:text-sky-800 text-sm font-medium flex items-center justify-end"
+                      <Link
+                        to="/history"
+                        className="text-sky-600 hover:text-sky-800 text-sm font-medium flex items-center justify-end focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-sky-500 rounded"
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         View
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -241,24 +242,24 @@ function Dashboard() {
           <p className="text-gray-100 mb-4">
             Upload file .eml untuk analisis phishing lengkap
           </p>
-          <a
-            href="/scan-email"
-            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+          <Link
+            to="/scan-email"
+            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 hover:text-white transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-white"
           >
             Mulai Scan →
-          </a>
+          </Link>
         </div>
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-md p-6 text-white">
           <h3 className="text-lg font-bold mb-2">Scan URL</h3>
           <p className="text-gray-100 mb-4">
             Cek link mencurigakan tanpa upload email
           </p>
-          <a
-            href="/scan-url"
-            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+          <Link
+            to="/scan-url"
+            className="inline-block bg-emerald-600 text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 hover:text-white transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-white"
           >
             Cek URL →
-          </a>
+          </Link>
         </div>
       </div>
     </div>
